@@ -1,0 +1,89 @@
+
+Understanding accumulators :
+They are shared variables which can be updated when required
+============================================================
+val accum = sc.longAccumulator("My Accumulator")
+
+val myrdd = sc.parallelize(List(1, 2, 3, 4,5,6,7))
+myrdd.foreach(x => accum.add(1))   //The user defined accumulator gets added each time when the loop is executed on the rdd elements 
+
+scala> accum.value     //Accumulator value can also be reset to zero using the accum.reset
+
+
+
+
+
+q) Write a program which demonstrates the use of accumulators to verify how many tasks were executed on any given data set of your choice
+
+val myrdd = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10,11,34,45,67),3)
+var accum= sc.longAccumulator("My accumulator")
+
+def myfunc(mycount:Int,nums:Iterator[Int]): Iterator[List[Int]] = { 
+
+    var sum = 0
+    while(nums.hasNext) {sum=sum+nums.next}
+    val myit = Iterator(List(mycount,sum))
+    accum.add(1)
+    return(myit)
+}
+
+
+val myx = myrdd.mapPartitionsWithIndex(myfunc)
+myx.collect
+println(accum.value)
+
+
+
+
+q) Demonstrate using a program to find out how many even numbers are there in a given data set. This has to be done using 2 ways 
+   a)Using the filter transformation 
+   
+   var num = sc.parallelize(1 to 10)
+   var rdd = num.filter(x => (x%2==0))
+   rdd.count
+
+
+
+   
+   b)Try doing the same using accumulators 
+   
+    var num = sc.parallelize(1 to 10)
+	var accum= sc.longAccumulator("My accumulator")
+	for(i<-num){
+      if(i%2==0){
+      accum.add(1)
+      }
+      }
+	accum.value
+
+   
+   
+   c)Summarize what is the difference in the above 2 methods and which is more efficient and give an analogy in a different problem 
+     where accumulators can be used efficiently 
+	 
+	 Usage of filter to arrive a result creates another RDD. And on that RDD, count is called. This process is repeated for every partitions. 
+	 In the second, case we donot have to create a RDD with even numbers. We can simple check the elements from the base RDD and increment the accumulator.
+	 Number of intermediate RDD creation in case 2 is less than case 1.
+	 
+	 Different Problems where accumulators can be used : 
+	 1. Finding Minimum/Maximum in a list of numbers.
+	 2. Word Frequency.
+	 3. Recording In-partitions, information.
+	 
+
+
+	
+
+q)In the previous question, one might feel that accumulators are really handy, but there is a drawback in using them. Explain what would that be with an example.
+
+In the previous example, accumulator was used as part of mapPartitionsWithIndex Transformation , so until action such as collect is not called on the transformation,
+even the Accumulator won't function.
+
+Whereas , in the question (2.b), accumulator is not loaded lazily.
+
+
+
+
+
+
+

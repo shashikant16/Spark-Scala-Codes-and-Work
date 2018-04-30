@@ -1,0 +1,227 @@
+This is available in the offical apache spark page (programming guide)
+http://spark.apache.org/docs/latest/programming-guide.html#rdd-operations
+
+
+
+
+Transformations 
+===============
+map  
+flatMap 
+filter 
+mapPartitions
+mapPartitionsWithIndex
+sample
+union
+intersection
+distinct
+groupByKey   
+reduceByKey  
+
+
+
+
+Understanding Map function (map transformation)
+Note: The below can be executed in the spark shell ! The command to enter spark shell is "spark-shell"
+Every transformation needs an argument to work ! 
+=======================================================================================================================
+val myNum=List(1,2,3,4,5)
+val myrdd = sc.makeRDD(mynum)
+val incNum = myrdd.map(v=>(v+1))  //Also try (v=>(v,1))
+incNum.collect()  //Collect is an action which triggers transformation
+
+
+
+//inNum.foreach(println)
+Note: This statement is recommended when compared to to collect action ! 
+
+
+
+Understanding flatMap
+==========================================================================
+val sent = List("This is Bangalore city")
+val myrdd = sc.makeRDD(mynum)
+val mywords = myrdd.flatMap(_.split(" "))  //execute this code to understand flatmap function along with split 
+//Instead of _.split try out _.toUpperCase
+
+
+
+Understanding filter
+============================================================================
+val mynum=List(1,2,3,4,5)
+val myrdd = sc.makeRDD(mynum)
+val filtered_rdd = myrdd.filter(v=>(v%2 == 0))
+filtered_rdd.collect
+
+
+
+
+
+Understanding map partitions
+===========================================================================
+mapPartitions
+
+This is an API which is used to perform an operation on an individual partition as a whole 
+API's like map and 
+map used to perfom transformation basically row-by-row, whereas the 
+mapPartitions API will allow us to iterate over all the elements of a parition at will. 
+
+q)What kind of operations nedds mapParitions ?
+->Some kind of special reducer logic 
+->What if we want to do an operation on the data set which is a sequential operation 
+->Finding the min or max within a partition (on a dataset which contains numbers)
+
+
+
+
+//Note: In a spark program, if we pass a function to map partitions as an argument, that function must return an iterator ! 
+//Not only it returns an iterator, but also takes an iterator as an argument ! 
+def myfunc(nums:Iterator[Int]): Iterator[Int]= {
+
+    var sum = 0
+
+  
+    while(nums.hasNext) {sum=sum+nums.next}
+ 
+    val myit = Iterator(sum)
+    return myit
+}
+
+val myrdd = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10))
+val myx = myrdd.mapPartitions(myfunc)
+myx.collect
+
+//Note: Map partition is faster than the map API and most cases we would be using map partition 
+
+
+
+
+
+
+
+Understanding mapPartitionswithIndex
+======================================================================================================================
+
+def myfunc(mycount:Int,nums:Iterator[Int]): Iterator[List[Int]] = { 
+
+//I am returning an iterator which containts a list (partition number, and the sum of numbers in that partition)
+
+    var sum = 0
+
+  
+    while(nums.hasNext) {sum=sum+nums.next}
+  
+    val myit = Iterator(List(mycount,sum))
+    return(myit)
+}
+
+val myrdd = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10))
+val myx = myrdd.mapPartitionsWithIndex(myfunc)
+myx.collect //collect is an action 
+
+
+
+Understanding sample 
+===============================================
+val myrdd = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10))
+val sam = myrdd.sample(false,0.5).take(3) 
+//false is used to avoid repetation in picking the numbers, take(3) will pick 3 nos and its an 
+//action, 0.5 is a seed which is fed to the algorithm which randomly picks 3 numbers, trying to execute the code multiple times will
+//result in different samples each time 
+
+
+Understanding unions
+========================================================== 
+val myrdd1 = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10))
+val myrdd2 = sc.parallelize(List(50,60,70))
+val u = myrdd1.union(mrdd2)
+
+-------Try intersections by youself--------------
+
+
+
+Understanding distinct
+=======================================
+val myrdd = sc.parallelize(List(1,2,3,4,5,6,7,8,9,10,10))
+val uniq = myrdd.distinct()
+
+
+
+Understanding groupBykey and reduceBykey
+=========================================
+
+val sent = sc.makeRDD(List("Hello hi how are you hi I am hello"))
+val mywords = sent.flatMap(_.split(" "))  
+
+val mykv = mywords.map(words => (words,1)) 
+
+val mywc = mykv.groupByKey()   //What does group by key do ?
+
+//https://databricks.gitbooks.io/databricks-spark-knowledge-base/content/best_practices/prefer_reducebykey_over_groupbykey.html
+
+Hint : check the output of mywc and it will look very similar to the aggregation operation in MR job of Hadoop 
+
+val myfinalsc = mywc.map(a=>(a._1,a._2.sum))
+
+
+----Now you can try the reduceBykey --------------
+val sent = sc.makeRDD(List("Hello hi hi how are you hi I am hello am"))
+val mywords = sent.flatMap(_.split(" "))  
+val mykv = mywords.map(words => (words,1)) 
+//At this stage we have a pair rdd (lets assume its split into 2 partitions)
+
+hello 1
+hi 1
+hi 1
+how 1
+are 1 
+
+
+you 1
+hi 1
+I 1
+am 1 
+hello 1
+am 1
+
+
+Once we call reduceBykey (an internal shuffling i.e aggregation will happen) and an 
+intermediate RDD will be formed which will look like the one given below 
+
+
+hello  1 1, hi 1 1 1, how 1, are 1   (intermidiate RDD1) these are all pair RDD's in the form of k,v
+you 1, I 1, am 1                     (intermediate RDD2) 
+
+
+//To get the key value pair "hello 1 1" , reduceByKey internally calls "combineByKey" API
+
+
+
+
+Now the basic idea behind reduce is that multiple values will be reduced to one value 
+
+mykv.reduceByKey(_+_).collect //Add this last line of code to the above code snippet  
+
+
+*****Important reads******* : 
+
+https://spark.apache.org/docs/2.2.0/rdd-programming-guide.html#shuffle-operations
+
+https://stackoverflow.com/questions/31386590/when-does-shuffling-occur-in-apache-spark
+
+****************************
+
+
+
+
+*****Important reads  ******* : 
+
+https://spark.apache.org/docs/2.2.0/rdd-programming-guide.html#shuffle-operations
+
+https://stackoverflow.com/questions/31386590/when-does-shuffling-occur-in-apache-spark
+
+https://github.com/vaquarkhan/vk-wiki-notes/wiki/Narrow-Transformation-vs-Wide-Transformation
+
+
+
+

@@ -1,0 +1,71 @@
+Actions
+========
+collect          
+reduce (Note: reduce is an action and reduceByKey is a transformation)   
+count  
+take   
+takeOrdered 
+saveAsTextFile 
+CountByValue
+foreach    
+fold 
+
+
+
+
+
+Understanding reduce 
+======================
+
+val numrdd = sc.makeRDD(List(1,2,3,4,5,6,7,8,9,10))
+val redrdd  = numrdd.reduce((a,b)=>(a+b))
+
+
+
+Understanding count 
+======================
+val numrdd = sc.makeRDD(List(1,2,3,4,5,6,7,8,9,10))
+val count = numrdd.count
+
+
+Understanding countByValue 
+===========================
+val numrdd = sc.makeRDD(List(1,2,3,4,5,6,7,8,9,10))
+val count = numrdd.countByValue
+
+
+
+Understanding saveAsTextFile 
+=============================
+val numrdd = sc.makeRDD(List(1,2,3,4,5,6,7,8,9,10))
+numrdd.saveAsTextFile("<path of the file to be created in the local file system>")
+
+---In case u want to save the contents of the RDD in a HDFS file location------------
+<rddname>.saveAsTextFile("hdfs://localhost:54310/<HDFS path>")
+
+
+
+Understanding foreach 
+======================
+val numrdd = sc.makeRDD(List(1,2,3,4,5,6,7,8,9,10))
+numrdd.foreach(println)  //This option will not bring the data back to the driver program unlike collect action
+
+
+
+
+
+
+Understanding folds 
+===================
+val numrdd = sc.makeRDD(List(1,2,3,4,5,6,7,8,9,10))
+val foldrdd  = numrdd.fold(0)((a,b)=>a+b)  //It will do the same thing as reduce but the 0 is the accumulator ! 
+
+//Accumulators work as initializers for every partition ! 
+
+
+Understandign take
+==================
+val numrdd = sc.makeRDD(List(1,2,3,4,5,6,7,8,9,10))
+
+
+
